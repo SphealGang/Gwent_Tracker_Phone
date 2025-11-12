@@ -10,6 +10,7 @@ from kivy.uix.label import Label
 # from kivy.uix.togglebutton import ToggleButton
 # from kivy.uix.image import Image
 from kivy.uix.scrollview import ScrollView
+from kivy.effects.scroll import ScrollEffect
 from kivy.graphics import Color, Rectangle
 # from kivy.utils import platform
 from kivy.resources import resource_find
@@ -64,7 +65,7 @@ class Handler(BoxLayout):
         self.height = self.add_card_button.height 
         
         self.battle_horn = ClickableImage(
-            source = resource_find("page_45_card_2-modified.png"),
+            source = resource_find("commander_horn_off.png"),
             action= lambda instace: commander_horn_effect(update_score_function,self),
             size_hint = handler_button_size_hint,
             mipmap=True,
@@ -76,7 +77,8 @@ class Handler(BoxLayout):
         self.card_scroll_view = ScrollView(
             do_scroll_x=True, 
             do_scroll_y=False, 
-            bar_width = 0
+            bar_width = 0,
+            effect_cls = ScrollEffect
             )
         self.add_widget(self.card_scroll_view)
 
@@ -86,6 +88,7 @@ class Handler(BoxLayout):
             height = self.add_card_button.height,
             width = Window.width
             )
+        self.card_view.bind(minimum_width = self.card_view.setter('width'))
         
         self.card_scroll_view.add_widget(self.card_view)
 
@@ -162,16 +165,16 @@ class MainApp(App):
         root.add_widget(PlayerWidget(top=True))
         
         preload_image = [
-        "Weather_Cards/page_1_card_7.png",
-        "Weather_Cards/page_3_card_2.png",
-        "Weather_Cards/page_1_card_1.png",
-        "page_45_card_2.png",
+        "Weather_Cards/impenetrable_fog_on.png",
+        "Weather_Cards/biting_frost_on.png",
+        "Weather_Cards/torrential_rain_on.png",
+        "commander_horn_on.png",
         ]
 
         for x in preload_image:
             path = resource_find(x)
             if path:
-                CoreImage(path).texture
+                CoreImage(resource_find(path)).texture
 
 
         return root

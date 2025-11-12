@@ -10,6 +10,8 @@ from kivy.resources import resource_find
 import sqlite3
 import threading
 from itertools import groupby
+from kivy.uix.label import Label
+from kivy.graphics import Color, Rectangle
 
 
 from custom_widgets import *
@@ -36,18 +38,10 @@ def add_card(type,widget_surface,unit_list,handler,weather_status,commander_horn
     )
     popup_content.add_widget(search_bar)
 
-    card_preview = ScrollView(
-        do_scroll_x=True, 
-        do_scroll_y=False, 
-        bar_width = 0,
-        )
-    popup_content.add_widget(card_preview)
-    
-    scroll_surface = GridLayout(rows=1,size_hint_x=None)
-    scroll_surface.bind(minimum_width=scroll_surface.setter('width'))
-    card_preview.add_widget(scroll_surface)
+    results_container = GridLayout(rows=1)
+    popup_content.add_widget(results_container)
 
-    search_bar.bind(text=lambda instance, value: search(instance, value, scroll_surface,type,widget_surface,unit_list,handler,weather_status,commander_horn_status,update_score_function))
+    search_bar.bind(text=lambda instance, value: search(instance, value, results_container,type,widget_surface,unit_list,handler,weather_status,commander_horn_status,update_score_function))
 
     close_button = Button(
         text = 'Close',
@@ -137,9 +131,15 @@ def calculate_total(unit_list,weather_status,commander_horn_status):
 def search(instance,value,surface,type,widget_surface,unit_list,handler,weather_status,commander_horn_status,update_score_function):
     surface.clear_widgets()
 
-    # loading_wheel(root=surface)
+    if len(value) >= 1:
+        loading_indicator = loading_wheel(surface)
+        surface.add_widget(loading_indicator)
+        surface.canvas.ask_update() 
 
-    threading.Thread(target=fetch_data, args=(value,surface,type,widget_surface,unit_list,handler,weather_status,commander_horn_status,update_score_function)).start()
+    Clock.schedule_once(lambda dt: threading.Thread(
+        target=fetch_data, 
+        args=(value, surface, type, widget_surface, unit_list, handler, weather_status, commander_horn_status, update_score_function)
+    ).start(), 1)
 
 
 def fetch_data(value,surface,type,widget_surface,unit_list,handler,weather_status,commander_horn_status,update_score_function):
@@ -161,6 +161,22 @@ def fetch_data(value,surface,type,widget_surface,unit_list,handler,weather_statu
 def display_data(result,surface,widget_surface,unit_list,handler,weather_status,commander_horn_status,update_score_function):
     surface.clear_widgets()
 
+    card_preview = ScrollView(
+        do_scroll_x=True, 
+        do_scroll_y=False, 
+        bar_width = 0,
+        )
+    surface.add_widget(card_preview)
+
+    scrollable_area = GridLayout(rows=1,size_hint_x=None, spacing = [100,0])
+    scrollable_area.bind(minimum_width=scrollable_area.setter('width'))
+    card_preview.add_widget(scrollable_area)
+
+    # with scrollable_area.canvas.before:
+    #     Color(255/255, 215/255, 0/255, 1)
+    #     rect = Rectangle(size=Window.size, pos=scrollable_area.pos)
+
+
     for i in result:
         # print(i)
         x = ClickableImage(
@@ -169,35 +185,46 @@ def display_data(result,surface,widget_surface,unit_list,handler,weather_status,
             size_hint_x=None,
             width=550,
             )
-        surface.add_widget(x)  
+        scrollable_area.add_widget(x)  
 
     # print('Display Finished')      
 
-# def loading_wheel(root):
-#     loading_icon = Image(
-#         source=r"/storage/emulated/0/Gwent_tracker_Phone/witcher_loading_icon-removebg-preview.png",
-#         size_hint=(None,None),
-#         size = (400,400)
-#         )
-#     root.add_widget(loading_icon)
+def loading_wheel(root):
+    loading_indicator = BoxLayout(orientation='vertical', size_hint=(1,1),width = root.width/4)
+
+    #loading_icon = Image(
+        #source=resource_find("geralt_cards.png"),
+        #size_hint=(None,None),
+        #size = (root.width/5,root.width/5)
+        #)
+    #loading_indicator.add_widget(loading_icon)
+    #loading_icon.pos_hint = {'center_x': 0.5}
+
+    loading_label = Label(text='Loading', font_size = 70)
+    loading_indicator.add_widget(loading_label)
+    loading_label.pos_hint = {'center_x': 0.5}
+    
+
+    return loading_indicator
+
         
 def choose_weather_card(faction,weather):
     if faction == 'Close Combat':
         if weather:
-            return "Weather_Cards/page_1_card_7.png"
+            return "Weather_Cards/biting_frost_on.png"
         else:
-            return "Weather_Cards/page_1_card_7-modified.png"
+            return "Weather_Cards/biting_frost_off.png"
 
     elif faction == "Ranged Combat":
         if weather:
-            return "Weather_Cards/page_3_card_2.png"
+            return "Weather_Cards/impenetrable_fog_on.png"
         else:
-            return "Weather_Cards/page_3_card_2-modified.png"
+            return "Weather_Cards/impenetrable_fog_off.png"
     else:
         if weather:
-            return "Weather_Cards/page_1_card_1.png"
+            return "Weather_Cards/torrential_rain_on.png"
         else:
-            return "Weather_Cards/page_1_card_1-modified.png"
+            return "Weather_Cards/torrential_rain_off.png"
 
 
 def weather_effect(update_score_function,handler):
@@ -215,9 +242,9 @@ def commander_horn_effect(update_score_function,handler):
     handler.commander_horn_status = not handler.commander_horn_status
 
     if not handler.commander_horn_status:
-        handler.battle_horn.source = resource_find("page_45_card_2-modified.png")
+        handler.battle_horn.source = resource_find("commander_horn_off.png")
     else:
-        handler.battle_horn.source = resource_find("page_45_card_2.png")
+        handler.battle_horn.source = resource_find("commander_horn_on.png")
         
 
     handler.faction_power = calculate_total(handler.unit_list,handler.weather_status,handler.commander_horn_status)
